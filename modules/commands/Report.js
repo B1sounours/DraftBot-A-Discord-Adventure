@@ -7,41 +7,14 @@ const Config = require('../utils/Config');
 let Text;
 let language;
 
-/**
- * Allow to charge the correct text file
- * @param message - The message that caused the function to be called. Used to retrieve the author of the message.
- */
-const chargeText = async function (message) {
-   let serverManager = new ServerManager();
-   let server = await serverManager.getServer(message);
-   if (message.channel.id == Config.ENGLISH_CHANNEL_ID) {
-      server.language = "en";
-   }
-   let address = '../text/' + server.language;
-   return require(address);
-}
-
-/**
- * Allow to get the language the bot has to respond with
- * @param message - The message that caused the function to be called. Used to retrieve the author of the message.
- * @returns {string} - the code of the server language
- */
-const detectLanguage = async function (message) {
-   let serverManager = new ServerManager();
-   let server = await serverManager.getServer(message);
-   if (message.channel.id == Config.ENGLISH_CHANNEL_ID) {
-      server.language = "en";
-   }
-   return server.language;
-}
 
 /**
  * Allow the user to learn more about what is going on with his character
  * @param message - The message that caused the function to be called. Used to retrieve the author of the message.
  */
 const reportCommand = async function (message, args, client, talkedRecently) {
-   Text = await chargeText(message);
-   language = await detectLanguage(message);
+   Text = await Tools.chargeText(message);
+   language = await Tools.detectLanguage(message);
    if (talkedRecently.has(message.author.id)) {
       return message.channel.send(Text.commands.sell.cancelStart + message.author + Text.commands.shop.tooMuchShop);
    }
@@ -54,7 +27,7 @@ const reportCommand = async function (message, args, client, talkedRecently) {
 
       playerManager.setPlayerAsOccupied(player);
 
-      if (Tools.isANullNumber(player.getScore())) {
+      if (player.getScore() == 0) {
          generateEvent(message, eventManager, 0, playerManager, player, DefaultValues.report.startMoney, DefaultValues.report.startScore);
          return;
       }
@@ -236,26 +209,26 @@ async function generateEvent(message, eventManager, eventNumber, playerManager, 
  */
 function displayPossibility(message, pointsGained, moneyChange, possibility) {
    let possibilityMessage = Text.commands.report.reportStart + message.author + Text.commands.report.points + pointsGained;
-   if (Tools.isAPositiveNumberOrNull(moneyChange)) {
+   if (moneyChange >= 0) {
       possibilityMessage += Text.commands.report.moneyWin + moneyChange;
    }
    else {
       possibilityMessage += Text.commands.report.moneyLoose + -moneyChange;
    }
-   if (Tools.isAPositiveNumber(possibility.xpGained))
+   if (possibility.xpGained > 0)
       possibilityMessage += Text.commands.report.xpWin + possibility.xpGained;
-   if (Tools.isANegativeNumber(possibility.healthPointsChange))
+   if (possibility.healthPointsChange < 0)
       possibilityMessage += Text.commands.report.healthLoose + -possibility.healthPointsChange;
-   if (Tools.isAPositiveNumber(possibility.healthPointsChange))
+   if (possibility.healthPointsChange > 0)
       possibilityMessage += Text.commands.report.healthWin + possibility.healthPointsChange;
-   if (Tools.isAPositiveNumber(possibility.timeLost))
+   if (possibility.timeLost > 0)
       possibilityMessage += Text.commands.report.timeLost + Tools.displayDuration(possibility.timeLost);
    return possibilityMessage;
 }
 
 
 /**
- * save the effect of a possibility on a player 
+ * save the effect of a possibility on a player
  * @param message - The message that caused the function to be called. Used to retrieve the author of the message.
  * @param {*} possibility - The possibility that has been selected
  * @param {*} player - The player that is reacting to the event
@@ -265,7 +238,7 @@ function displayPossibility(message, pointsGained, moneyChange, possibility) {
  */
 async function applyPossibility(message, pointsGained, moneyChange, possibility, player, playerManager) {
 
-   let language = await detectLanguage(message);
+   let language = await Tools.detectLanguage(message);
    //adding score
    player.addScore(pointsGained);
 
